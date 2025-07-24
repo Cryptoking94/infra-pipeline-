@@ -15,6 +15,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1  # Change this if your region is different
+
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
@@ -46,13 +53,27 @@ jobs:
             }
           done
 
-      - name: Slack Notification - Plan Completed
+      - name: Slack Notification - Plan Success
+        if: success()
         uses: slackapi/slack-github-action@v1.24.0
         with:
           payload: |
             {
               "channel": "${{ secrets.SLACK_CHANNEL_ID }}",
-              "text": ":white_check_mark: *Terraform Plan Completed*\n\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Pushed by:* ${{ github.actor }}\n\n:bulb: Please [create a Pull Request](https://github.com/${{ github.repository }}/compare/main...${{ github.ref_name }}) to start the approval process.",
+              "text": ":white_check_mark: *Terraform Plan Completed Successfully*\n\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Pushed by:* ${{ github.actor }}\n\n:bulb: Please [create a Pull Request](https://github.com/${{ github.repository }}/compare/main...${{ github.ref_name }}) to start the approval process.",
+              "unfurl_links": false
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+      - name: Slack Notification - Plan Failed
+        if: failure()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "channel": "${{ secrets.SLACK_CHANNEL_ID }}",
+              "text": ":x: *Terraform Plan Failed!*\n\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Triggered by:* ${{ github.actor }}\n\nPlease review the GitHub Actions log for errors.",
               "unfurl_links": false
             }
         env:
